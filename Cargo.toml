@@ -1,0 +1,12 @@
+[package]
+name = "external-memory-tools"
+version = "0.1.0"
+edition = "2021"
+
+[features]
+default = ["std"]
+std = []
+
+[lib]
+name = "external_memory_tools"
+crate-type = ["lib"]
