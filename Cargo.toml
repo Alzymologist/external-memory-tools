@@ -1,7 +1,16 @@
 [package]
+description = "HAL to keep data in memory that could not be directly mapped to RAM"
+license = "GPL-3.0-or-later"
 name = "external-memory-tools"
 version = "0.1.0"
+authors = ["Alexander Slesarev <slesarew@gmail.com>", "Vera Abramova <abramova.vera@gmail.com>"]
 edition = "2021"
+repository = "https://github.com/Alzymologist/external-memory-tools"
+homepage = "https://github.com/Alzymologist/external-memory-tools"
+documentation = "https://docs.rs/external-memory-tools/"
+keywords = ["no_std", "baremetal", "memory", "secure"]
+exclude = ["/.github"]
+
 
 [features]
 default = ["std"]
