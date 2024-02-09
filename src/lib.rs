@@ -78,9 +78,6 @@ pub trait AddressableBuffer<E: ExternalMemory>: Sized {
     }
 
     /// Restrict the length of the addressable buffer.
-    ///
-    /// `new_len` should be checked to be within the original length elsewhere.
-    /// This function panics if `new_len` exceeds `total_len`.
     fn limit_length(&self, new_len: usize) -> Result<Self, BufferError<E>>;
 }
 
