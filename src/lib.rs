@@ -1,6 +1,6 @@
-//! Memory tools. Draft.
+//! Traits for handling bytes data from external memory.
 //!
-//! Important to keep read slice as a basic reader tool, because of commonly occuring pages in memory.
+//! Currently only read functionality is supported.
 #![no_std]
 #![deny(unused_crate_dependencies)]
 
@@ -28,14 +28,18 @@ use std::{
     string::String,
 };
 
+/// External addressable memory.
 pub trait ExternalMemory: Debug {
+    /// Errors specific to memory accessing.
     type ExternalMemoryError: Debug + Display + Eq + PartialEq;
 }
 
+/// `ExternalMemory` could also be applied to regular RAM.
 impl ExternalMemory for () {
     type ExternalMemoryError = NoEntries;
 }
 
+/// Empty error enum, for cases with fault-free memory access.
 #[derive(Debug, Eq, PartialEq)]
 pub enum NoEntries {}
 
@@ -45,22 +49,39 @@ impl Display for NoEntries {
     }
 }
 
-pub trait AddressableBuffer<E: ExternalMemory> {
+/// Bytes access through [`ExternalMemory`].
+///
+/// Could be implemented, for example, for a combination of an address in
+/// external memory and corresponding bytes slice length.
+pub trait AddressableBuffer<E: ExternalMemory>: Sized {
+    /// Bytes read from buffer.
     type ReadBuffer: AsRef<[u8]>;
+
+    /// Total length of the addressable buffer.
     fn total_len(&self) -> usize;
+
+    /// Read bytes slice of known length at known relative position.
+    ///
+    /// Important to keep `read_slice`, **not `read_byte`** as a basic reader
+    /// tool, because of commonly occuring pages in memory.
     fn read_slice(
         &self,
         ext_memory: &mut E,
         position: usize,
         slice_len: usize,
     ) -> Result<Self::ReadBuffer, BufferError<E>>;
+
+    /// Read single byte at known position.
     fn read_byte(&self, ext_memory: &mut E, position: usize) -> Result<u8, BufferError<E>> {
         let byte_slice = self.read_slice(ext_memory, position, 1)?;
         Ok(byte_slice.as_ref()[0])
     }
-    fn limit_length(&self, new_len: usize) -> Self;
+
+    /// Restrict the length of the addressable buffer.
+    fn limit_length(&self, new_len: usize) -> Result<Self, BufferError<E>>;
 }
 
+/// `AddressableBuffer` could be also implemented for regular bytes slices.
 impl<'a, E: ExternalMemory> AddressableBuffer<E> for &'a [u8] {
     type ReadBuffer = &'a [u8];
     fn total_len(&self) -> usize {
@@ -86,11 +107,15 @@ impl<'a, E: ExternalMemory> AddressableBuffer<E> for &'a [u8] {
             }),
         }
     }
-    fn limit_length(&self, new_len: usize) -> Self {
-        &self[..new_len]
+    fn limit_length(&self, new_len: usize) -> Result<Self, BufferError<E>> {
+        self.get(..new_len).ok_or(BufferError::DataTooShort {
+            position: 0,
+            minimal_length: new_len,
+        })
     }
 }
 
+/// Errors in buffer access.
 #[derive(Debug, Eq, PartialEq)]
 pub enum BufferError<E: ExternalMemory> {
     DataTooShort {
